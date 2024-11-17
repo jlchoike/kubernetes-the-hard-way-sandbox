@@ -4,26 +4,26 @@ provider "azurerm" {
 }
 
 resource "azurerm_resource_group" "rg" {
-  name     = "x64-sandbox-rg"
-  location = "East US"
+  name     = "arm64-sandbox-rg"
+  location = "East US 2"
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "x64-sandbox-vnet"
+  name                = "arm64-sandbox-vnet"
   address_space       = ["10.0.0.0/16"]
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 }
 
 resource "azurerm_subnet" "subnet" {
-  name                 = "x64-sandbox-subnet"
+  name                 = "arm64-sandbox-subnet"
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
 }
 
 resource "azurerm_network_security_group" "nsg" {
-  name                = "x64-sandbox-nsg"
+  name                = "arm64-sandbox-nsg"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -41,8 +41,8 @@ resource "azurerm_network_security_group" "nsg" {
 }
 
 resource "azurerm_network_interface" "nic" {
-  count               = 4  # Create 4 identical NICs
-  name                = "x64-sandbox-nic-${count.index + 1}"
+  count               = 4
+  name                = "arm64-sandbox-nic-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
 
@@ -50,19 +50,19 @@ resource "azurerm_network_interface" "nic" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.subnet.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.ip[count.index].id  # Link public IPs to NICs
+    public_ip_address_id          = azurerm_public_ip.ip[count.index].id
   }
 }
 
 resource "azurerm_network_interface_security_group_association" "nsg_association" {
-  count                   = 4  # Assign NSG to all 4 NICs
+  count                   = 4
   network_interface_id     = azurerm_network_interface.nic[count.index].id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 resource "azurerm_public_ip" "ip" {
-  count               = 4  # Create 4 public IPs
-  name                = "x64-sandbox-pip-${count.index + 1}"
+  count               = 4
+  name                = "arm64-sandbox-pip-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   allocation_method   = "Static"
@@ -70,18 +70,18 @@ resource "azurerm_public_ip" "ip" {
 }
 
 resource "azurerm_linux_virtual_machine" "vm" {
-  count               = 4  # Create 4 identical VMs
-  name                = "x64-sandbox-vm-${count.index + 1}"
+  count               = 4
+  name                = "arm64-sandbox-vm-${count.index + 1}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  size                = "Standard_D2s_v5"  # x64 SKU
+  size                = "Standard_D2ps_v5"  # ARM-compatible SKU
 
   network_interface_ids = [azurerm_network_interface.nic[count.index].id]
 
   admin_username        = "azureuser"
   admin_ssh_key {
     username   = "azureuser"
-    public_key = file("~/.ssh/id_rsa.pub")  # Update with your actual public key path
+    public_key = file("~/.ssh/id_rsa.pub")
   }
 
   os_disk {
@@ -92,7 +92,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts-gen2"
+    sku       = "22_04-lts-arm64"
     version   = "latest"
   }
 
